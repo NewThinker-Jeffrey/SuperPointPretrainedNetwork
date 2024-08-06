@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # %BANNER_BEGIN%
 # ---------------------------------------------------------------------
@@ -230,12 +230,18 @@ class SuperPointFrontend(object):
     inp = torch.from_numpy(inp)
     inp = torch.autograd.Variable(inp).view(1, 1, H, W)
     if self.cuda:
+      print("Using GPU ... inp")
       inp = inp.cuda()
     # Forward pass of network.
+    forward_start_time = time.time()
     outs = self.net.forward(inp)
     semi, coarse_desc = outs[0], outs[1]
     # Convert pytorch -> numpy.
     semi = semi.data.cpu().numpy().squeeze()
+    forward_end_time = time.time()
+    forward_elapsed_time = forward_end_time - forward_start_time
+    print('forward time: {} seconds'.format(forward_elapsed_time))
+
     # --- Process points.
     dense = np.exp(semi) # Softmax.
     dense = dense / (np.sum(dense, axis=0)+.00001) # Should sum to 1.
@@ -277,6 +283,7 @@ class SuperPointFrontend(object):
       samp_pts = samp_pts.view(1, 1, -1, 2)
       samp_pts = samp_pts.float()
       if self.cuda:
+        print("Using GPU ... samp_pts")
         samp_pts = samp_pts.cuda()
       desc = torch.nn.functional.grid_sample(coarse_desc, samp_pts)
       desc = desc.data.cpu().numpy().reshape(D, -1)
